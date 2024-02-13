@@ -1,0 +1,16 @@
+# Build Output
+out
+x64
+Debug
+Builds
+
+# VS
+.vs
+*.sln
+*.vcxproj*
+
+# CMAKE
+*.dir
+_deps
+*cmake*
+!CMakeLists.txt
