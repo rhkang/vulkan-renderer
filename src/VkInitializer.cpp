@@ -1,5 +1,6 @@
 #include <VkInitializer.h>
 
+#include <VkTypes.h>
 #include <VkBootstrap.h>
 
 void vkinit::InitializeVkGraphics(GLFWwindow* window, VkInstance* pInstance, VkSurfaceKHR* pSurface, VkPhysicalDevice* pGpuDevice, VkDevice* pDevice, VkQueue* pGraphicsQueue, uint32_t* pGraphicsQueueFamily, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -68,6 +69,20 @@ void vkinit::InitializeVkGraphics(GLFWwindow* window, VkInstance* pInstance, VkS
 	*pDebugMessenger = debugMessenger;
 }
 
+void vkinit::InitAllocator(VkInstance* pInstance, VkPhysicalDevice* pGpuDevice, VkDevice* pDevice, VmaAllocator* pAllocator) {
+	VmaAllocatorCreateInfo vmaAllocatorCI{
+		.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+		.physicalDevice = *pGpuDevice,
+		.device = *pDevice,
+		.instance = *pInstance,
+	};
+
+	VmaAllocator vmaAllocator;
+	vmaCreateAllocator(&vmaAllocatorCI, &vmaAllocator);
+
+	*pAllocator = vmaAllocator;
+}
+
 VkCommandPoolCreateInfo vkinit::commandPoolCI(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags)
 {
 	return VkCommandPoolCreateInfo{
@@ -118,7 +133,7 @@ VkImageSubresourceRange vkinit::ImageSubResourceRange(VkImageAspectFlags aspectM
 	};
 }
 
-VkSemaphoreSubmitInfo vkinit::SemaphoreSubmitInfo(VkPipelineStageFlags2 stageMask, VkSemaphore semaphore) {
+VkSemaphoreSubmitInfo vkinit::SemaphoreSI(VkPipelineStageFlags2 stageMask, VkSemaphore semaphore) {
 	return VkSemaphoreSubmitInfo{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 		.semaphore = semaphore,
@@ -128,7 +143,7 @@ VkSemaphoreSubmitInfo vkinit::SemaphoreSubmitInfo(VkPipelineStageFlags2 stageMas
 	};
 }
 
-VkCommandBufferSubmitInfo vkinit::CommandBufferSubmitInfo(VkCommandBuffer cmd) {
+VkCommandBufferSubmitInfo vkinit::CommandBufferSI(VkCommandBuffer cmd) {
 	return VkCommandBufferSubmitInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 		.commandBuffer = cmd,
@@ -148,5 +163,34 @@ VkSubmitInfo2 vkinit::SubmitInfo(VkCommandBufferSubmitInfo* cmdSI, VkSemaphoreSu
 
 		.signalSemaphoreInfoCount = (uint32_t)(signalSemaphoreSI == nullptr ? 0 : 1),
 		.pSignalSemaphoreInfos = signalSemaphoreSI,
+	};
+}
+
+VkImageCreateInfo vkinit::ImageCI(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
+	return VkImageCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = format,
+		.extent = extent,
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = usageFlags,
+	};
+}
+
+VkImageViewCreateInfo vkinit::ImageViewCI(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags) {
+	return VkImageViewCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = image,
+		.format = format,
+		.subresourceRange {
+			.aspectMask = aspectFlags,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
 	};
 }

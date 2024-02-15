@@ -10,12 +10,12 @@
 #include <GLFW/glfw3native.h>
 
 #include <EventHandler.h>
-#include <Types.h>
+#include <VkTypes.h>
 
 struct DeletionQueue {
 	std::deque<std::function<void()>> deletors;
 
-	void Push(std::function<void()>&& function) {
+	void push(std::function<void()>&& function) {
 		deletors.push_back(function);
 	}
 
@@ -46,6 +46,7 @@ public:
 	bool stop_rendering{ false };
 	VkExtent2D windowExtent{ 800, 600 };
 
+	VmaAllocator vmaAllocator;
 	DeletionQueue mainDeletionQueue;
 
 	GLFWwindow* window{ nullptr };
@@ -71,6 +72,9 @@ public:
 
 	FrameData frames[NUM_FRAME];
 	FrameData& GetCurrentFrame() { return frames[frameNumber % NUM_FRAME]; }
+
+	AllocatedImage drawImage;
+	VkExtent2D drawExtent;
 
 	VkQueue graphicsQueue;
 	uint32_t graphicsQueueFamily;

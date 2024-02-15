@@ -4,7 +4,8 @@
 #include <thread>
 #include <cassert>
 
-#include <iostream>
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 #include <VkBootstrap.h>
 #include <VkInitializer.h>
@@ -112,9 +113,9 @@ void Engine::Draw() {
 
 	VK_CHECK(vkEndCommandBuffer(cmd));
 
-	VkCommandBufferSubmitInfo cmdInfo = vkinit::CommandBufferSubmitInfo(cmd);
-	VkSemaphoreSubmitInfo waitInfo = vkinit::SemaphoreSubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, currentFrame.swapChainSemaphore);
-	VkSemaphoreSubmitInfo signalInfo = vkinit::SemaphoreSubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, currentFrame.renderSemaphore);
+	VkCommandBufferSubmitInfo cmdInfo = vkinit::CommandBufferSI(cmd);
+	VkSemaphoreSubmitInfo waitInfo = vkinit::SemaphoreSI(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, currentFrame.swapChainSemaphore);
+	VkSemaphoreSubmitInfo signalInfo = vkinit::SemaphoreSI(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, currentFrame.renderSemaphore);
 
 	VkSubmitInfo2 submitInfo = vkinit::SubmitInfo(&cmdInfo, &signalInfo, &waitInfo);
 
@@ -146,6 +147,8 @@ void Engine::InitVulkan()
 		&graphicsQueueFamily,
 		&debugMessenger
 	);
+
+	vkinit::InitAllocator(&instance, &gpuDevice, &device, &vmaAllocator);
 }
 
 void Engine::InitSwapChain() {
@@ -164,6 +167,37 @@ void Engine::InitSwapChain() {
 	swapChainImages = vkbSwapChain.get_images().value();
 	swapChainImageViews = vkbSwapChain.get_image_views().value();
 	swapChainExtent = vkbSwapChain.extent;
+
+	drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+	drawImage.imageExtent = {
+		.width = windowExtent.width,
+		.height = windowExtent.height,
+		.depth = 1,
+	};
+
+	VkImageUsageFlags drawImageUsages{
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+		VK_IMAGE_USAGE_STORAGE_BIT |
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+	};
+
+	VkImageCreateInfo imageCI = vkinit::ImageCI(drawImage.imageFormat, drawImageUsages, drawImage.imageExtent);
+
+	VmaAllocationCreateInfo allocCI{
+		.usage = VMA_MEMORY_USAGE_GPU_ONLY,
+		.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+	};
+
+	vmaCreateImage(vmaAllocator, &imageCI, &allocCI, &drawImage.image, &drawImage.allocation, nullptr);
+
+	VkImageViewCreateInfo imageViewCI = vkinit::ImageViewCI(drawImage.imageFormat, drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+	VK_CHECK(vkCreateImageView(device, &imageViewCI, nullptr, &drawImage.imageView));
+
+	mainDeletionQueue.push([=]() {
+		vkDestroyImageView(device, drawImage.imageView, nullptr);
+		vmaDestroyImage(vmaAllocator, drawImage.image, drawImage.allocation);
+		});
 }
 
 void Engine::DestroySwapChain() {

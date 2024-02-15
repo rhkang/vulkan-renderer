@@ -9,7 +9,16 @@ find_package(Vulkan REQUIRED)
 
 include(FetchContent)
 
-FetchContent_Declare(glfw
+FetchContent_Declare(
+	VulkanMemoryAllocator
+    GIT_REPOSITORY		"https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
+    GIT_TAG				"v3.0.1"
+    GIT_SHALLOW OFF
+)
+FetchContent_MakeAvailable(VulkanMemoryAllocator)
+
+FetchContent_Declare(
+	glfw
     GIT_REPOSITORY		"https://github.com/glfw/glfw"
     GIT_TAG				"3.3.9"
     GIT_SHALLOW ON
